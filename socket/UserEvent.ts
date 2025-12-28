@@ -49,4 +49,39 @@ export function registerUserEvents(io: SocketIoServers, socket: any) {
       }
     }
   );
+
+  socket.on("getContacts", async () => {
+    const currentUserId = socket.data.userId;
+    try {
+      if (!currentUserId) {
+        return socket.emit("getContacts", {
+          success: false,
+          msg: "Unauthorized",
+        });
+        return;
+      }
+      const users = await User.find(
+        { _id: { $ne: currentUserId } },
+        { password: 0 }
+      ).lean();
+
+      const contacts = users.map((user) => ({
+        id: user._id.toString(),
+        name: user.name,
+        email: user.email,
+        avatar: user.avatar || "",
+      }));
+
+      socket.emit("getContacts", {
+        success: true,
+        data: contacts,
+      });
+    } catch (error: any) {
+      console.log("Error in getContacts", error.message);
+      return socket.emit("getContacts", {
+        success: false,
+        msg: "failed to fetch Contacts",
+      });
+    }
+  });
 }
